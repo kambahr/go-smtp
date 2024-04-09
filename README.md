@@ -1,5 +1,6 @@
 # SMTP for Golang
-## Send multiple emails (To, Cc, and Bcc)
+## Send multiple emails (To, Cc, and Bcc) with attachements
+You can also add a user-agent, DSN (Delivery Status Notification) and/or email receipt options.
 
 ### Usage example
 
@@ -21,22 +22,56 @@ func main() {
 		Password: "<password>"}
 	}
 
-	var to []gosmtp.EmailAddr
-	var cc []gosmtp.EmailAddr
-	var bcc []gosmtp.EmailAddr
-
-	to = append(to, gosmtp.EmailAddr{Name: "<first name> <last name> or a display name", Address: "<email addr>"})
-	to = append(to, gosmtp.EmailAddr{Name: "<first name> <last name> or a display name", Address: "<email addr>"})
-	cc = append(cc, gosmtp.EmailAddr{Name: "<first name> <last name> or a display name", Address: "<email addr>"})
-	bcc = append(bcc, gosmtp.EmailAddr{Name: "<first name> <last name> or a display name", Address: "<email addr>"})
-
 	var m = gosmtp.MailItem{
-        From:     gosmtp.EmailAddr{Name: "<first name> <last name> or a display name i.e. an org name", Address: "<email addr>"},
-		To:       to,
-		CC:       cc,
-		BCC:      bcc,
-		Subject:  "<subject>",
-		HTMLBody: `html or plain text i.e <h1 style="color:dodgerblue">Hello World</h1>``,
+		From: gosmtp.EmailAddr{Name: "<fulll name>", Address: "<email address>"},
+		To: []gosmtp.EmailAddr{
+			{Name: "<fulll name>", Address: "<email address>"},
+			{Name: "<fulll name>", Address: "<email address>"},
+			/* ... */
+		},
+		CC: []gosmtp.EmailAddr{{Name: "<fulll name>", Address: "<email address>"}},
+		Bcc: []gosmtp.EmailAddr{{Name: "<fulll name>", Address: "<email address>"}},
+
+		Subject: "Test email from Go smtp client",
+		/* 
+			a message can contain both text and html formats 
+		*/
+		HTMLBody: "<h1 style='color:darkgreen'>Hello world - HTML format!</h1>",
+		TextBody: "Hello world! - text format!",
+
+		Attachment: []string{
+			"<full path to a document>",
+			"<full path to another document>",
+			/* ... */
+			/* note that the attachments limit depends on your mail server config */
+		},
+
+		/* Priority is not required; Normal is the default */
+		Priority:                   gosmtp.High,
+
+		/* Language is not required */
+		Language:                   "en-US",
+
+		/* 
+		DeliveryStatusNotification causes the SMTP server send
+		a notification about the delivery status of an email
+		(failure, success or delay); see sendMessage() func's
+		comments in email.go as to how to enable this option.
+		
+		*/
+		// DeliveryStatusNotification: []string{gosmtp.SUCCESS},
+
+		/* 
+			DispositionNotificationTo causes a request to be added to the
+		 	email so that the recipient will have the option of sending
+			the receipt after reading the email (aka email receipt).
+		*/
+		DispositionNotificationTo:  "<the FROM or any other email  address>",
+
+		/* 
+			UserAgent is not required.
+		*/
+		UserAgent:                  "<name of or your application>",
 	}
 
 	err := gosmtp.SendMail(m, mc)

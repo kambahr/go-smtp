@@ -1,0 +1,57 @@
+package smtp
+
+import (
+	"errors"
+	"strings"
+)
+
+// validateNotifyOpt valdiates the notify options.
+// Possible valies are: SUCCESS, DELAY or FAILURE.
+func (c *Client) validateNotifyOpt(notifyOpt []string) error {
+	f := false
+	d := false
+	s := false
+	for i := 0; i < len(notifyOpt); i++ {
+		if notifyOpt[i] == "SUCCESS" {
+			s = true
+			continue
+		}
+		if notifyOpt[i] == "DELAY" {
+			d = true
+			continue
+		}
+		if notifyOpt[i] == "FAILURE" {
+			f = true
+		}
+	}
+	if !f && !d && !s {
+		return errors.New("invalid notification option")
+	}
+
+	return nil
+}
+
+// RcptNotify extends the Rcpt() func to send delivery status notification
+// to the FROM address. The status notification can be FAILURE,DELAY, or SUCCESS.
+func (c *Client) RcptNotify(to string, notifyTo string, notifyOpt []string) error {
+	if err := validateLine(to); err != nil {
+		return err
+	}
+
+	var err error
+	var nOpt string
+
+	if len(notifyOpt) == 0 {
+		nOpt = "FAILURE"
+	} else {
+
+		if err := c.validateNotifyOpt(notifyOpt); err != nil {
+			return err
+		}
+
+		nOpt = strings.Join(notifyOpt, ",")
+	}
+	_, _, err = c.cmd(25, "RCPT TO:<%s> NOTIFY=%s ORCPT=rfc822;%s", to, nOpt, notifyTo)
+
+	return err
+}
