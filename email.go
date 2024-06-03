@@ -102,6 +102,14 @@ func prepareHeaders(m MailItem) string {
 	msgHeaders = fmt.Sprintf("%s%s:%s\r\n", msgHeaders, "Cc", strings.Join(headerCC, ","))
 	msgHeaders = fmt.Sprintf("%s%s:%s\r\n", msgHeaders, "Subject", m.Subject)
 
+	// add a message-id
+	fromDomain := strings.Split(m.From.Address, "@")[1]
+	b := make([]byte, 18)
+	rand.Read(b)
+	srnd := fmt.Sprintf("%x-%x-%x_%x%x", b[0:4], b[4:8], b[6:9], b[4:10], b[5:10])
+	msgID := fmt.Sprintf("%s@%s", srnd, fromDomain)
+	msgHeaders = fmt.Sprintf("%s%s:%s\r\n", msgHeaders, "Message-Id", msgID)
+
 	// add the recipient's receipt
 	if m.DispositionNotificationTo != "" {
 		msgHeaders = fmt.Sprintf("%sDisposition-Notification-To: \"%s\" <%s>\r\n", msgHeaders, m.DispositionNotificationTo, m.DispositionNotificationTo)
@@ -189,31 +197,23 @@ func sendMessage(m MailItem, mc MailCredentials, msgHeaders string) error {
 
 	// To
 	for i := 0; i < len(m.To); i++ {
-		s := fmt.Sprintf(`"%s" <%s>`, m.To[i].Name, m.To[i].Address)
-
-		// if err = c.RcptNotify(s, m.From.Address, m.DeliveryStatusNotification); err != nil {
-		// 	return err
-		// }
-
 		// To enable DSN (Delivery Status Notification), see above comments...
 		// comment out the following func, and uncomment the above func;
-		if err = c.Rcpt(s); err != nil {
+		if err = c.Rcpt(m.To[i].Address); err != nil {
 			return err
 		}
 	}
 
 	// CC
 	for i := 0; i < len(m.CC); i++ {
-		s := fmt.Sprintf(`"%s" <%s>`, m.CC[i].Name, m.CC[i].Address)
-		if err = c.Rcpt(s); err != nil {
+		if err = c.Rcpt(m.CC[i].Address); err != nil {
 			return err
 		}
 	}
 
 	// BCC (not included in the header, which makes it not visible to recipients)
 	for i := 0; i < len(m.BCC); i++ {
-		s := fmt.Sprintf(`"%s" <%s>`, m.BCC[i].Name, m.BCC[i].Address)
-		if err = c.Rcpt(s); err != nil {
+		if err = c.Rcpt(m.BCC[i].Address); err != nil {
 			return err
 		}
 	}
